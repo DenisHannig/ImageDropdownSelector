@@ -42,8 +42,9 @@ var ImageSelector = {
         var options = "";
         $.each(children, function (index, child) {
             var id = child.id || "";
-            var title = child.getAttribute("title") || "";
-            var image = child.getAttribute("image") || "";
+            var title = child.getAttribute("title");
+            var image = child.getAttribute("image");
+            console.log(image)
             var option = ImageSelector.createOption(id, title, image);
             options += option;
         });
@@ -127,7 +128,7 @@ var ImageSelector = {
      *
      * @param selector { HTMLElement | {} }
      * @param eventListener { Function }
-     * @param replace { boolean? }
+     * @param replace { boolean | null }
      */
     setOnSelectListener: function (selector, eventListener, replace) {
         if ($.isFunction(eventListener)) {
@@ -289,7 +290,7 @@ var ImageSelector = {
             '	   display: flex;' +
             '	   flex: auto;' +
             '	   margin: auto;' +
-            '	   padding: 2px 12px;' +
+            '	   padding: 4px 10px;' +
             '	   line-height: normal;' +
             '	   white-space: nowrap;' +
             '	   overflow: hidden;' +
@@ -343,7 +344,7 @@ var ImageSelector = {
             '	   display: flex;' +
             '	   flex: auto;' +
             '	   margin: auto;' +
-            '	   padding: 2px 12px;' +
+            '	   padding: 4px 10px;' +
             '	   line-height: normal;' +
             '	   white-space: nowrap;' +
             '	   user-select: none;' +
@@ -353,13 +354,20 @@ var ImageSelector = {
             '	   background-color: #f0f0f0;' +
             '   }' +
             '   .image-selector-option-image {' +
-            '	   width: 18px;' +
+            '	   width: 18px default;' +
             '	   height: 18px;' +
             '	   flex: none;' +
-            '	   margin-right: 10px;' +
+            '	   margin-top: auto;' +
+            '	   margin-bottom: auto;' +
             '   }' +
             '   .image-selector-option-text {' +
             '	   margin: auto auto auto 0;' +
+            '   }' +
+            '   .image-selector-css-hidden {' +
+            '       display: none !important;' +
+            '   }' +
+            '   .image-selector-css-mr-10 {' +
+            '       margin-right: 10px;' +
             '   }' +
             '</style>' +
             '<div class="image-selector">' +
@@ -378,19 +386,27 @@ var ImageSelector = {
      * Create a single Option Item which can be used for ImageSelectors after initialization.
      *
      * @param id { string }
-     * @param title { string }
-     * @param image { string }
+     * @param title { string | null }
+     * @param image { string | null }
      * @return { HTMLElement | string }
      */
     createOption: function (id, title, image) {
-        return '<span class="image-selector-option" id="' + id + '" image="' + image + '" title="' + title + '">' +
-            '    <img class="image-selector-option-image" src="' + image + '" alt="' + id.toUpperCase() + '"/>' +
-            '    <span class="image-selector-option-text">' + title + '</span>' +
+        return '<span class="image-selector-option" id="' + id + '" title="' + title + '" image="' + image + '">' +
+            '    <img class="image-selector-option-image ' + (image ? '' : 'image-selector-css-hidden') + (title ? 'image-selector-css-mr-10' : '') + '" src="' + image + '" alt="' + id.toUpperCase() + '"/>' +
+            '    <span class="image-selector-option-text ' + (title ? '' : 'image-selector-css-hidden') + '">' + title + '</span>' +
             '</span>';
     },
 
+    /**
+     * Create a single Option Item which can be used for ImageSelectors befor initialization.
+     *
+     * @param id { string }
+     * @param title { string | null }
+     * @param image { string | null }
+     * @return { HTMLElement | string }
+     */
     createOptionBeforeInit: function (id, title, image) {
-        return '<image-option id="' + id + '" title="' + title + '" image="' + image + '"></image-option>';
+        return '<image-option id="' + id + (title ? ('" title="' + title) : '') + (image ? ('" image="' + image) : '') + '"></image-option>';
     },
 
     /**
