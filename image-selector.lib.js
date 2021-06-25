@@ -30,6 +30,7 @@
   }}
  */
 var ImageSelector = {
+
     onSelectListeners: {},
 
     /**
@@ -38,30 +39,31 @@ var ImageSelector = {
      * @param selectors { HTMLElement | [HTMLElement] | {} }
      */
     init: function (selectors) {
-        var children = $(selectors.find("image-option"));
-        var options = "";
-        $.each(children, function (index, child) {
-            var id = child.id || "";
-            var title = child.getAttribute("title");
-            var image = child.getAttribute("image");
-            console.log(image)
-            var option = ImageSelector.createOption(id, title, image);
-            options += option;
-        });
-        selectors.html(ImageSelector.template(options));
+        imageSelectorHelper.each(selectors, function (index, selector) {
+            var allOptions = imageSelectorHelper.findAllOptions(selector);
+            var options = "";
+            imageSelectorHelper.each(allOptions, function (index, child) {
+                var id = child.id || "";
+                var title = child.hasAttribute("title") ? child.getAttribute("title") : "";
+                var image = child.hasAttribute("image") ? child.getAttribute("image") : null;
+                var option = ImageSelector.createOption(id, title, image);
+                options += option;
+            });
 
+            var template = ImageSelector.template(options);
+            imageSelectorHelper.html(selector, template);
 
-        $.each(selectors, function (index, imageSelector) {
-            if (!imageSelector.getAttribute("id")) {
-                imageSelector.setAttribute("id", "image-selector-" + index);
+            if (!selector.getAttribute("id")) {
+                selector.setAttribute("id", "image-selector-" + index);
             }
-            if (ImageSelector.getItemCount(imageSelector) > 0) {
-                imageSelector.systemCall = true;
-                ImageSelector.setSelectedIndex(imageSelector, 0);
+            if (ImageSelector.getItemCount(selector) > 0) {
+                selector.systemCall = true;
+                ImageSelector.setSelectedIndex(selector, 0);
             }
-        });
 
-        ImageSelector.setupEventListeners(selectors);
+            ImageSelector.setupEventListeners(selector);
+
+        });
     },
 
     /**
@@ -71,13 +73,13 @@ var ImageSelector = {
      * @param index { number }
      */
     setSelectedIndex: function (selector, index) {
-        var options = $(selector).find(".image-selector-options-list").find(".image-selector-option");
+        var options = imageSelectorHelper.findAllOptions(selector);
         if (options && options.length > 0 && index <= options.length) {
             options[index].systemCall = selector.systemCall === true;
             ImageSelector.setSelectedOption(options[index]);
             selector.systemCall = undefined;
         } else {
-            throw new Error('Options index out of range for index [' + index + ']. (Available items [${options.length}]');
+            throw new Error('Options index out of range for index [' + index + ']. (Available items [imageSelectorHelper{options.length}]');
         }
     },
 
@@ -90,7 +92,7 @@ var ImageSelector = {
     setSelectedOptionById: function (selector, id) {
         selector.systemCall = selector.systemCall !== undefined;
 
-        var option = $(selector).find(".image-selector-options-list").find('.image-selector-option[id="' + id + '"]');
+        var option = imageSelectorHelper.findOptionById(selector, id);
         if (option) {
             option.systemCall = selector.systemCall;
             ImageSelector.setSelectedOption(option);
@@ -103,24 +105,23 @@ var ImageSelector = {
      * @param option { HTMLElement | {} }
      */
     setSelectedOption: function (option) {
-        if (option.length <= 0) return;
-
         option.systemCall = option.systemCall !== undefined;
 
-        var selector = $($(option).closest("image-selector"));
-        var selectorSelection = selector.find(".image-selector-selection");
+        var selector = imageSelectorHelper.findClosestSelector(option);
+        var selectorSelection = imageSelectorHelper.findCurrentSelection(selector);
         var selectedOption = document.createElement("span");
         selectedOption.classList.add("image-selector-selection");
-        selectedOption.innerHTML = $(option)[0].innerHTML;
-        selectedOption.id = $(option)[0].getAttribute("id");
-        $(selectedOption).find(".image-selector-option-text").text(selectedOption.id.toUpperCase());
-        selectorSelection[0].outerHTML = selectedOption.outerHTML;
+        selectedOption.innerHTML = option.innerHTML;
+        selectedOption.id = option.getAttribute("id");
+        var valueToSet = selector.hasAttribute("idAsSelectedText") ? selectedOption.id.toUpperCase() : selectedOption.title;
+        imageSelectorHelper.text(selectedOption.querySelector(".image-selector-option-text"), valueToSet);
+        selectorSelection.outerHTML = selectedOption.outerHTML;
 
         if (this.onSelectListeners[selector] && option.systemCall !== true) {
             var index = ImageSelector.getIndexOf(option);
             this.onSelectListeners[selector](index, option);
-            option.systemCall = undefined;
         }
+        option.systemCall = undefined;
     },
 
     /**
@@ -131,7 +132,7 @@ var ImageSelector = {
      * @param replace { boolean | null }
      */
     setOnSelectListener: function (selector, eventListener, replace) {
-        if ($.isFunction(eventListener)) {
+        if (imageSelectorHelper.isFunction(eventListener)) {
             if (ImageSelector.onSelectListeners[selector]) {
                 if (replace === true) {
                     ImageSelector.onSelectListeners[selector] = eventListener;
@@ -149,20 +150,23 @@ var ImageSelector = {
      * @return { number }
      */
     getItemCount: function (selector) {
-        var itemCount = $(selector).find(".image-selector-options-list").find(".image-selector-option").length;
-        return itemCount + 0;
+        var allOptions = imageSelectorHelper.findAllOptions(selector);
+        return allOptions.length;
     },
 
     /**
      * Get the current selected selector option.
      *
      * @param selector { HTMLElement | {} }
-     * @return { HTMLElement | {} }
+     * @return { HTMLElement | {} | null }
      */
     getCurrentSelected: function (selector) {
-        var currentSelected = $(selector).find(".image-selector-selection");
-        var currentSelectedId = currentSelected.attr("id");
-        return $(selector).find(".image-selector-options-list").find('.image-selector-option[id="' + currentSelectedId + '"]');
+        var currentSelected = imageSelectorHelper.findCurrentSelection(selector);
+        if (currentSelected) {
+            var currentSelectedId = currentSelected.getAttribute("id");
+            return imageSelectorHelper.findOptionsList(selector).querySelector('.image-selector-option[id="' + currentSelectedId + '"]');
+        }
+        return null;
     },
 
     /**
@@ -173,7 +177,10 @@ var ImageSelector = {
      */
     getCurrentSelectedIndex: function (selector) {
         var currentSelectedOption = ImageSelector.getCurrentSelected(selector);
-        return ImageSelector.getIndexOf(currentSelectedOption);
+        if (currentSelectedOption) {
+            return ImageSelector.getIndexOf(currentSelectedOption);
+        }
+        return -1;
     },
 
     /**
@@ -183,10 +190,17 @@ var ImageSelector = {
      * @return { number }
      */
     getIndexOf: function (option) {
-        var option = $(option);
-        var selector = $($(option).closest("image-selector"));
-        if (option && option.length > 0 && selector && selector.length > 0)
-            return $(option).index();
+        var index = -1;
+        var selector = imageSelectorHelper.findClosestSelector(option);
+        if (option && selector) {
+            var allOptions = imageSelectorHelper.findAllOptions(selector);
+            imageSelectorHelper.each(allOptions, function (idx, opt) {
+                if (option.id === opt.id) {
+                    index = idx;
+                }
+            });
+            return index;
+        }
     },
 
     /**
@@ -194,54 +208,63 @@ var ImageSelector = {
      *
      * @param imageSelectors { HTMLElement | [HTMLElement] | {} }
      */
-    setupEventListeners: function (imageSelectors) {
-        $(imageSelectors).offOn("click", function (event) {
-            event.stopPropagation();
-            if (this.classList.contains("expanded")) {
-                this.classList.remove("expanded");
-            } else {
-                this.classList.add("expanded");
-            }
+    setupEventListeners: function (imageSelector) {
+        var optionsList = imageSelectorHelper.findOptionsList(imageSelector);
 
-            var optionsList = $($(imageSelectors).find(".image-selector-options-list"));
-            if (optionsList && optionsList.length > 0) {
-                var out = ImageSelectorHelperIsOutOfViewport(optionsList[0]);
-                optionsList.css("top", "");
-                optionsList.css("right", "");
-                optionsList.css("bottom", "");
-                optionsList.css("left", "");
+        imageSelectorHelper.offOn("mouseup", imageSelector.querySelector(".image-selector"), function (event) {
+            event.stopPropagation();
+            imageSelectorHelper.toggleClass(imageSelector, "expanded", !ImageSelector.isExpanded(imageSelector));
+
+            if (optionsList) {
+                var out = imageSelectorHelper.isOutOfViewport(optionsList, true);
                 if (out.top === true) {
-                    optionsList.css("top", 0);
+                    optionsList.style.top = 0;
                 }
                 if (out.right === true) {
-                    optionsList.css("right", 0);
+                    optionsList.style.right = 0;
                 }
                 if (out.bottom === true) {
-                    optionsList.css("bottom", 0);
+                    optionsList.style.bottom = 0;
                 }
                 if (out.left === true) {
-                    optionsList.css("left", 0);
+                    optionsList.style.left = 0;
                 }
             }
         });
 
-        $(imageSelectors.find(".image-selector-options-list")).offOn("mouseleave", function (event) {
+        var optionsList = imageSelectorHelper.findOptionsList(imageSelector);
+
+        imageSelectorHelper.offOn("mouseleave", imageSelector, function (event) {
+            if (!ImageSelector.isExpanded(imageSelector)) return;
             event.stopPropagation();
             ImageSelector.collapseAllImageSelectors();
+            if (optionsList) {
+                var out = imageSelectorHelper.isOutOfViewport(optionsList, true);
+            }
         });
 
-        $(imageSelectors.find(".image-selector-option")).offOn("mouseup", function (event) {
+        imageSelectorHelper.offOn("mouseup", imageSelectorHelper.findAllOptions(imageSelector), function (event) {
             event.stopPropagation();
-            ImageSelector.setSelectedOption($(this));
+            ImageSelector.setSelectedOption(this);
             ImageSelector.collapseAllImageSelectors();
         });
+    },
+
+    /**
+     *
+     * @param imageSelector { HTMLElement }
+     * @return boolean
+     */
+    isExpanded: function (imageSelector) {
+        return imageSelector.classList.contains("expanded");
     },
 
     /**
      * Collapsing all existing ImageSelector items.
      */
     collapseAllImageSelectors: function () {
-        $("image-selector").toggleClass("expanded", false);
+        var imageSelectors = imageSelectorHelper.findAllImageSelectors();
+        imageSelectorHelper.toggleClass(imageSelectors, "expanded", false);
     },
 
     /**
@@ -254,13 +277,13 @@ var ImageSelector = {
     template: function (options) {
         return '<style>' +
             '   image-selector {' +
+            '	   display: block;' +
             '	   margin: auto;' +
             '	   font-size: 12px;' +
             '   }' +
             '   .image-selector {' +
             '	   min-width: 40px;' +
             '	   height: auto;' +
-            '	   min-height: 18px;' +
             '	   background-color: #f0f0f0;' +
             '	   border-radius: 4px;' +
             '	   display: flex;' +
@@ -282,6 +305,7 @@ var ImageSelector = {
             '	   text-overflow: ellipsis;' +
             '	   overflow: hidden;' +
             '	   margin: auto;' +
+            '	   min-height: 18px;' +
             '   }' +
             '   .image-selector-selection {' +
             '	   width: auto;' +
@@ -362,6 +386,7 @@ var ImageSelector = {
             '   }' +
             '   .image-selector-option-text {' +
             '	   margin: auto auto auto 0;' +
+            '	   line-height: 18px;' +
             '   }' +
             '   .image-selector-css-hidden {' +
             '       display: none !important;' +
@@ -372,14 +397,14 @@ var ImageSelector = {
             '</style>' +
             '<div class="image-selector">' +
             '   <span class="image-selector-selection">' +
-            '	   <div class="image-selector-option-image" />' +
+            '	   <div class="image-selector-option-image"></div>' +
             '	   <span class="image-selector-selection-text"></span>' +
             '   </span>' +
             '   <div class="image-selector-arrow"></div>' +
             '</div>' +
-            '<div class="image-selector-options-list">' +
+            '<span class="image-selector-options-list">' +
             '	 ' + options +
-            '</div>';
+            '</span>';
     },
 
     /**
@@ -391,10 +416,10 @@ var ImageSelector = {
      * @return { HTMLElement | string }
      */
     createOption: function (id, title, image) {
-        return '<span class="image-selector-option" id="' + id + '" title="' + title + '" image="' + image + '">' +
-            '    <img class="image-selector-option-image ' + (image ? '' : 'image-selector-css-hidden') + (title ? 'image-selector-css-mr-10' : '') + '" src="' + image + '" alt="' + id.toUpperCase() + '"/>' +
-            '    <span class="image-selector-option-text ' + (title ? '' : 'image-selector-css-hidden') + '">' + title + '</span>' +
-            '</span>';
+        return '<div class="image-selector-option" id="' + id + (title ? ('" title="' + title) : '') + (image ? ('" image="' + image) : '') + '">' +
+            (image ? ('    <img class="image-selector-option-image ' + (title ? 'image-selector-css-mr-10' : '') + '" src="' + image + '" alt="' + id.toUpperCase() + '"/>') : '') +
+            '    <span class="image-selector-option-text ' + (title ? '' : 'image-selector-css-hidden ') + '">' + title + '</span>' +
+            '</div>';
     },
 
     /**
@@ -417,37 +442,283 @@ var ImageSelector = {
      * @param options { [HTMLElement] | string }
      */
     addOptionItems: function (selector, options) {
-        $(selector).html(options);
-        ImageSelector.init(selector);
+        imageSelectorHelper.html(selector, options);
+        ImageSelector.init([selector]);
     },
 };
 
-/* ******* *
- * Helper  *
- * ******* */
+document.addEventListener("DOMContentLoaded", function (event) {
+    /**
+     * Initial call to setup all <image-selector /> tags.
+     */
+    (function () {
+        ImageSelector.init(imageSelectorHelper.findAllImageSelectors());
+    })();
+});
 
 /**
- * Check whether an Element hits the browser viewport bound.
+ * Helper
  *
- * @param element
- * @return { {} }
+ * @type {{
+        isOutOfViewport: (function(HTMLElement, boolean): {}),
+        isFunction: (function(*)),
+        each: _ImageSelectorHelper.each,
+        eventsHandler: _ImageSelectorHelper.eventsHandler,
+        off: _ImageSelectorHelper.off,
+        on: _ImageSelectorHelper.on,
+        offOn: _ImageSelectorHelper.offOn,
+        toggleClass: _ImageSelectorHelper.toggleClass,
+        html: ((function(HTMLElement, string): (string|null))|*),
+        text: ((function(HTMLElement, string): (string|null))|*),
+        findAllImageSelectors: (function(): NodeListOf<HTMLElement>),
+        findAllOptions: (function(HTMLElement): NodeListOf<Element>|NodeListOf<Element>),
+        findOptionById: (function(HTMLElement, string): NodeListOf<Element> | Element),
+        findClosestSelector: ((function(HTMLElement): HTMLElement)|*),
+        findOptionsList: (function(HTMLElement): Element|null),
+        findCurrentSelection: (function(HTMLElement): HTMLElement)
+    }}
+ * @private
  */
-var ImageSelectorHelperIsOutOfViewport = function (element) {
-    var bounding = element.getBoundingClientRect();
-    var out = {};
-    out.top = bounding.top < 0;
-    out.left = bounding.left < 0;
-    out.bottom = bounding.bottom > (window.innerHeight || document.documentElement.clientHeight);
-    out.right = bounding.right > (window.innerWidth || document.documentElement.clientWidth);
-    out.any = out.top || out.left || out.bottom || out.right;
-    out.all = out.top && out.left && out.bottom && out.right;
-    return out;
+var _ImageSelectorHelper = new function () {
+    return {
+        /**
+         * Check whether an Element hits the browser viewport bound.
+         *
+         * @param element { HTMLElement }
+         * @param resetTopRightBottomLeft { boolean }
+         * @return { {} }
+         */
+        isOutOfViewport: function (element, resetTopRightBottomLeft) {
+            var bounding = element.getBoundingClientRect();
+            var out = {};
+            out.top = bounding.top < 0;
+            out.left = bounding.left < 0;
+            out.bottom = bounding.bottom > (window.innerHeight || document.documentElement.clientHeight);
+            out.right = bounding.right > (window.innerWidth || document.documentElement.clientWidth);
+            out.any = out.top || out.left || out.bottom || out.right;
+            out.all = out.top && out.left && out.bottom && out.right;
+            if (resetTopRightBottomLeft) {
+                element.style.top = "";
+                element.style.right = "";
+                element.style.bottom = "";
+                element.style.left = "";
+            }
+            return out;
+        },
+        /**
+         * Check whether a given 'object' is a Function or not.
+         *
+         * @param obj { * }
+         * @return { boolean }
+         */
+        isFunction: function (obj) {
+            return (obj && typeof obj === 'function')
+        },
+        /**
+         * Toggle a given Class of a given Element.
+         *
+         * @param elems { HTMLElement | [HTMLElement] }
+         * @param clazz { string }
+         * @param state { boolean }
+         */
+        toggleClass: function (elems, clazz, state) {
+            if (elems && elems.length && elems.length > 0) {
+                imageSelectorHelper.each(elems, function (index, elem) {
+                    if (state) {
+                        if (!elem.classList.contains(clazz))
+                            elem.classList.add(clazz);
+                    } else {
+                        elem.classList.remove(clazz);
+                    }
+                });
+            } else if (elems && elems.classList) {
+                if (state) {
+                    if (!elems.classList.contains(clazz))
+                        elems.classList.add(clazz);
+                } else {
+                    elems.classList.remove(clazz);
+                }
+            }
+        },
+        /**
+         * Loop through a given list of Elements.
+         * A callback Function will be called which has an index and
+         * a single Element as parameters.
+         *
+         * @param elems { [HTMLElement|*] }
+         * @param callback { Function }
+         */
+        each: function (elems, callback) {
+            if (elems && typeof callback === 'function') {
+                for (var index = 0; index < elems.length; index++) {
+                    callback(index, elems[index]);
+                }
+            }
+        },
+        /**
+         * Helper function for setting and removing Event Listeners.
+         *
+         * @param method { * }
+         * @param events { string }
+         * @param elems { [HTMLElement] }
+         * @param listener { function }
+         */
+        eventsHandler: function (method, events, elems, listener) {
+            if (elems && !Array.isArray(elems) && !NodeList.prototype.isPrototypeOf(elems)) {
+                var array = [];
+                array.push(elems);
+                elems = array;
+            }
+            var allEvents = events.split(' ');
+            imageSelectorHelper.each(allEvents, function (index, singleEvent) {
+                imageSelectorHelper.each(elems, function (index, el) {
+                    if (method === "addEventListener") {
+                        if (el.attachEvent) {
+                            el['e' + singleEvent + listener] = listener;
+                            el[singleEvent + listener] = function () {
+                                el['e' + singleEvent + listener](window.event);
+                            }
+                            el.attachEvent('on' + singleEvent, el[singleEvent + listener]);
+                        } else {
+                            el.addEventListener(singleEvent, listener, false);
+                        }
+                    } else if (method === "removeEventListener") {
+                        if (el.detachEvent) {
+                            el['e' + singleEvent + listener] = listener;
+                            el[singleEvent + listener] = function () {
+                                el['e' + singleEvent + listener](window.event);
+                            }
+                            el.attachEvent('on' + singleEvent, el[singleEvent + listener]);
+                        } else {
+                            el.removeEventListener(singleEvent, listener, false);
+                        }
+                    }
+                });
+            });
+        },
+        /**
+         * Remove an Event Listener for a given Element.
+         *
+         * @param events { string }
+         * @param elem { HTMLElement | [HTMLElement] }
+         * @param listener { function }
+         */
+        off: function (events, elem, listener) {
+            this.eventsHandler("removeEventListener", events, elem, listener);
+        },
+        /**
+         * Set an Event Listener for a given Element.
+         *
+         * @param events { string }
+         * @param elem { HTMLElement | [HTMLElement] }
+         * @param listener { function }
+         */
+        on: function (events, elem, listener) {
+            this.eventsHandler("addEventListener", events, elem, listener);
+        },
+        /**
+         * Reset an Event Listener for a given Element.
+         *
+         * @param events { string }
+         * @param elem { HTMLElement | [HTMLElement] }
+         * @param listener { function }
+         */
+        offOn: function (events, elem, listener) {
+            this.off(events, elem, listener)
+            this.on(events, elem, listener)
+        },
+        /**
+         * Set or get the inner HTML value of a given Element.
+         *
+         * @param elem { HTMLElement }
+         * @param html { string }
+         * @return { string | null }
+         */
+        html: function (elem, html) {
+            if (html)
+                elem.innerHTML = html;
+            else
+                return elem.innerHTML;
+        },
+        /**
+         * Set or get the inner Text value of a given Element.
+         *
+         * @param elem { HTMLElement }
+         * @param text { string }
+         * @return { string | null }
+         */
+        text: function (elem, text) {
+            if (text)
+                elem.innerText = text;
+            else
+                return elem.innerText;
+        },
+        /**
+         * Find all ImageSelector Elements in the document.
+         *
+         * @returns { NodeListOf<HTMLElement> | [HTMLElement] }
+         */
+        findAllImageSelectors: function () {
+            return document.querySelectorAll("image-selector");
+        },
+        /**
+         * Find all Options of a given ImageSelector.
+         *
+         * @param elem { HTMLElement }
+         * @returns { NodeListOf<HTMLElement>|[HTMLElement] }
+         */
+        findAllOptions: function (elem) {
+            var opt = elem.querySelectorAll("image-option");
+            opt = opt.length > 0 ? opt : elem.querySelectorAll(".image-selector-option");
+            return opt;
+        },
+        /**
+         * Find an Options by the Options ID of a given ImageSelector.
+         *
+         * @param elem { HTMLElement }
+         * @param id { string }
+         * @returns { HTMLElement }
+         */
+        findOptionById: function (elem, id) {
+            var opt = elem.querySelectorAll('image-option[id="' + id + '"]');
+            opt = opt.length > 0 ? opt : elem.querySelector('.image-selector-option[id="' + id + '"]');
+            if (opt.length > 0) {
+                opt = opt[0];
+            }
+            return opt;
+        },
+        /**
+         * Find the parent ImageSelector of a given Options Element.
+         *
+         * @param option { HTMLElement }
+         * @returns { HTMLElement }
+         */
+        findClosestSelector: function (option) {
+            if (option && option.tagName.toLowerCase() === 'image-selector') {
+                return option;
+            } else if (option && option.parentNode) {
+                return this.findClosestSelector(option.parentNode);
+            }
+        },
+        /**
+         * Find the list of Options of a given ImageSelector.
+         *
+         * @param elem { HTMLElement }
+         * @returns { HTMLElement | null }
+         */
+        findOptionsList: function (elem) {
+            var o = elem.querySelectorAll('.image-selector-options-list');
+            return o.length > 0 ? o[0] : null;
+        },
+        /**
+         * Find the current Selection of a given ImageSelector.
+         *
+         * @param elem { HTMLElement }
+         * @returns { HTMLElement }
+         */
+        findCurrentSelection: function (elem) {
+            return elem.querySelector(".image-selector-selection");
+        }
+    };
 };
-
-/**
- * Initial call to setup all <image-selector /> tags.
- */
-(function () {
-    var imageSelectors = $(document.getElementsByTagName("image-selector"));
-    ImageSelector.init(imageSelectors);
-})();
+var imageSelectorHelper = _ImageSelectorHelper;
