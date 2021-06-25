@@ -1,12 +1,10 @@
 # ImageLoader
-Currently ther first version of the ImageLoader depends on the jQuery library. So make sure to use it in your project, too!
 
 ## Usage
 1. Include the image-loader.lib.js Library to your HTML Project:
 ```bash
 <html>
   <head>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="image-selector.lib.min.js"></script>
     ...
   </head>
