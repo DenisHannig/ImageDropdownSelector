@@ -108,6 +108,7 @@ var ImageSelector = {
         option.systemCall = option.systemCall !== undefined;
 
         var selector = imageSelectorHelper.findClosestSelector(option);
+        var selectorId = selector.getAttribute("id");
         var selectorSelection = imageSelectorHelper.findCurrentSelection(selector);
         var selectedOption = document.createElement("span");
         selectedOption.classList.add("image-selector-selection");
@@ -117,9 +118,9 @@ var ImageSelector = {
         imageSelectorHelper.text(selectedOption.querySelector(".image-selector-option-text"), valueToSet);
         selectorSelection.outerHTML = selectedOption.outerHTML;
 
-        if (this.onSelectListeners[selector] && option.systemCall !== true) {
+        if (this.onSelectListeners[selectorId] && option.systemCall !== true) {
             var index = ImageSelector.getIndexOf(option);
-            this.onSelectListeners[selector](index, option);
+            this.onSelectListeners[selectorId](index, option);
         }
         option.systemCall = undefined;
     },
@@ -133,12 +134,13 @@ var ImageSelector = {
      */
     setOnSelectListener: function (selector, eventListener, replace) {
         if (imageSelectorHelper.isFunction(eventListener)) {
-            if (ImageSelector.onSelectListeners[selector]) {
+            var selectorId = selector.getAttribute("id");
+            if (ImageSelector.onSelectListeners[selectorId]) {
                 if (replace === true) {
-                    ImageSelector.onSelectListeners[selector] = eventListener;
+                    ImageSelector.onSelectListeners[selectorId] = eventListener;
                 }
             } else {
-                ImageSelector.onSelectListeners[selector] = eventListener;
+                ImageSelector.onSelectListeners[selectorId] = eventListener;
             }
         }
     },
@@ -150,6 +152,8 @@ var ImageSelector = {
      * @return { number }
      */
     getItemCount: function (selector) {
+        if (!selector) return -1;
+
         var allOptions = imageSelectorHelper.findAllOptions(selector);
         return allOptions.length;
     },
@@ -471,8 +475,8 @@ document.addEventListener("DOMContentLoaded", function (event) {
         html: ((function(HTMLElement, string): (string|null))|*),
         text: ((function(HTMLElement, string): (string|null))|*),
         findAllImageSelectors: (function(): NodeListOf<HTMLElement>),
-        findAllOptions: (function(HTMLElement): NodeListOf<Element>|NodeListOf<Element>),
-        findOptionById: (function(HTMLElement, string): NodeListOf<Element> | Element),
+        findAllOptions: (function(HTMLElement): NodeListOf<Element>|NodeListOf<Element>|null),
+        findOptionById: (function(HTMLElement, string): NodeListOf<Element>|Element|null),
         findClosestSelector: ((function(HTMLElement): HTMLElement)|*),
         findOptionsList: (function(HTMLElement): Element|null),
         findCurrentSelection: (function(HTMLElement): HTMLElement)
@@ -665,11 +669,12 @@ var _ImageSelectorHelper = new function () {
          * Find all Options of a given ImageSelector.
          *
          * @param elem { HTMLElement }
-         * @returns { NodeListOf<HTMLElement>|[HTMLElement] }
+         * @returns { NodeListOf<HTMLElement>|[HTMLElement]|null }
          */
         findAllOptions: function (elem) {
+            if (!elem) return null;
             var opt = elem.querySelectorAll("image-option");
-            opt = opt.length > 0 ? opt : elem.querySelectorAll(".image-selector-option");
+            opt = ((opt && opt.length > 0) ? opt : elem.querySelectorAll(".image-selector-option"));
             return opt;
         },
         /**
@@ -677,9 +682,10 @@ var _ImageSelectorHelper = new function () {
          *
          * @param elem { HTMLElement }
          * @param id { string }
-         * @returns { HTMLElement }
+         * @returns { HTMLElement|null }
          */
         findOptionById: function (elem, id) {
+            if (!elem) return null;
             var opt = elem.querySelectorAll('image-option[id="' + id + '"]');
 
             opt = ((opt && opt.length > 0) ? opt : elem.querySelector('.image-selector-option[id="' + id + '"]'));
