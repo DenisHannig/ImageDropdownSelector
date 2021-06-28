@@ -10,6 +10,14 @@
  */
 
 /**
+ *
+ * @example
+ * <image-selector idAsSelectedText>
+ *  <image-option id="DE" title="German" image="de.png" />
+ *  <image-option id="IT" title="Italiano" image="it.png" />
+ *  <image-option id="FR" title="French" image="french.png" />
+ * </image-selector>
+ *
  * @type {{
        onSelectListeners: {},
        init: ImageSelector.init,
@@ -114,7 +122,7 @@ var ImageSelector = {
         selectedOption.classList.add("image-selector-selection");
         selectedOption.innerHTML = option.innerHTML;
         selectedOption.id = option.getAttribute("id");
-        var valueToSet = selector.hasAttribute("idAsSelectedText") ? selectedOption.id.toUpperCase() : selectedOption.title;
+        var valueToSet = selector.hasAttribute("idAsSelectedText") ? selectedOption.id : selectedOption.title;
         imageSelectorHelper.text(selectedOption.querySelector(".image-selector-option-text"), valueToSet);
         selectorSelection.outerHTML = selectedOption.outerHTML;
 
