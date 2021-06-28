@@ -1,7 +1,7 @@
-# ImageLoader
+# ImageDropdownSelector
 
 ## Usage
-1. Include the image-loader.lib.js Library to your HTML Project:
+1. Include the image-selecgtor.lib.js Library to your HTML Project:
 ```bash
 <html>
   <head>
@@ -21,4 +21,4 @@
 </image-selector>
 ```
 
-5. It will be automatically initialized by the image-loader.lib.js Library.
+5. It will be automatically initialized by the image-selector.lib.js Library.
