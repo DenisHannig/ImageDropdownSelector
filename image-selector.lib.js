@@ -378,7 +378,7 @@ var ImageSelector = {
             '	   background-color: #f0f0f0;' +
             '   }' +
             '   .image-selector-option-image {' +
-            '	   width: 18px default;' +
+            '	   width: 18px;' +
             '	   height: 18px;' +
             '	   flex: none;' +
             '	   margin-top: auto;' +
@@ -417,7 +417,7 @@ var ImageSelector = {
      */
     createOption: function (id, title, image) {
         return '<div class="image-selector-option" id="' + id + (title ? ('" title="' + title) : '') + (image ? ('" image="' + image) : '') + '">' +
-            (image ? ('    <img class="image-selector-option-image ' + (title ? 'image-selector-css-mr-10' : '') + '" src="' + image + '" alt="' + id.toUpperCase() + '"/>') : '') +
+            (image ? ('    <img class="image-selector-option-image ' + (title ? 'image-selector-css-mr-10' : '') + '" src="' + image + '" alt="' + id.toUpperCase() + '" onerror="this.style.opacity=\'0\'"/>') : '') +
             '    <span class="image-selector-option-text ' + (title ? '' : 'image-selector-css-hidden ') + '">' + title + '</span>' +
             '</div>';
     },
@@ -681,8 +681,9 @@ var _ImageSelectorHelper = new function () {
          */
         findOptionById: function (elem, id) {
             var opt = elem.querySelectorAll('image-option[id="' + id + '"]');
-            opt = opt.length > 0 ? opt : elem.querySelector('.image-selector-option[id="' + id + '"]');
-            if (opt.length > 0) {
+
+            opt = ((opt && opt.length > 0) ? opt : elem.querySelector('.image-selector-option[id="' + id + '"]'));
+            if (opt && opt.length > 0) {
                 opt = opt[0];
             }
             return opt;
