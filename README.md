@@ -12,7 +12,7 @@
 </html>
 ```
 
-3. Add the custom element tag <image-selector></image-selector> to your HTML document:
+2. Add the custom element tag <image-selector></image-selector> to your HTML document:
 ```html
 <image-selector id="any_id">
   <image-option id="id1" title="Option 1" image="filename/or/url/" />
@@ -21,4 +21,4 @@
 </image-selector>
 ```
 
-5. It will be automatically initialized by the image-selector.lib.js Library.
+3. It will be automatically initialized by the image-selector.lib.js Library.
