@@ -1,5 +1,11 @@
 # ImageDropdownSelector
 
+![image-selector](https://user-images.githubusercontent.com/86413572/124750028-41767b80-df25-11eb-93c8-778c0ae12ee9.PNG)
+
+![image-selector-expanded](https://user-images.githubusercontent.com/86413572/124750118-5f43e080-df25-11eb-9236-844fb1bcdd2e.PNG)
+
+
+
 ## Usage
 1. Include the image-selecgtor.lib.js Library to your HTML Project:
 ```html
